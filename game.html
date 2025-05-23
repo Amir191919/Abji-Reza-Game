@@ -1,0 +1,306 @@
+
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>بازی توپی آبجی رضا سلیمانی</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'B Nazanin', 'Tahoma', sans-serif;
+      background-color: #000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    canvas {
+      display: block;
+      margin: 20px auto;
+      background: linear-gradient(to bottom, #87CEEB, #ffffff);
+      border: 3px solid #663300;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+    }
+    h1 {
+      text-align: center;
+      margin-top: 10px;
+      color: #FFD700;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+    }
+    #gameInfo {
+      color: white;
+      font-size: 24px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    #gameOverMenu, #startMenu {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.9);
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
+      color: white;
+      z-index: 10;
+    }
+    #gameOverMenu h2, #startMenu h2 {
+      margin-bottom: 25px;
+      color: #FF4500;
+      font-size: 36px;
+    }
+    #gameOverMenu p, #startMenu p {
+      font-size: 24px;
+      margin-bottom: 30px;
+      color: #ADFF2F;
+    }
+    #startMenu .creator-info {
+        font-size: 20px;
+        color: #ADD8E6;
+        margin-top: 20px;
+    }
+    #startMenu .creator-info a {
+        color: #ADD8E6;
+        text-decoration: none;
+    }
+    #startMenu .creator-info a:hover {
+        text-decoration: underline;
+    }
+
+    #gameOverMenu button, #startMenu button {
+      padding: 12px 25px;
+      margin: 10px;
+      font-size: 18px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+    #restartBtn, #startBtn {
+      background-color: #4CAF50;
+      color: white;
+    }
+    #restartBtn:hover, #startBtn:hover {
+      background-color: #45a049;
+      transform: scale(1.05);
+    }
+    #exitBtn {
+      background-color: #f44336;
+      color: white;
+    }
+    #exitBtn:hover {
+      background-color: #da190b;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <h1>بازی توپی آبجی رضا سلیمانی</h1>
+  <div id="gameInfo">
+    امتیاز: <span id="scoreDisplay">0</span>
+  </div>
+  <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+  <div id="startMenu">
+    <h2>بازی توپی آبجی رضا سلیمانی</h2>
+    <p>برای شروع بازی، دکمه زیر را فشار دهید</p>
+    <div class="creator-info">
+      ساخته شده توسط Amir<br>
+      پیج اینستاگرام سازنده: <a href="https://instagram.com/amirhosseinussr" target="_blank">@amirhosseinussr</a>
+    </div>
+    <button id="startBtn">شروع بازی</button>
+  </div>
+
+  <div id="gameOverMenu">
+    <h2>بازی تموم شد!</h2>
+    <p>امتیاز نهایی: <span id="finalScore">0</span></p>
+    <button id="restartBtn">بازی مجدد</button>
+    <button id="exitBtn">خروج</button>
+  </div>
+
+  <audio id="bgMusic" loop>
+    <source src="https://www.bensound.com/bensound-music/bensound-smile.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreDisplay = document.getElementById("scoreDisplay");
+    const gameOverMenu = document.getElementById("gameOverMenu");
+    const finalScoreDisplay = document.getElementById("finalScore");
+    const restartBtn = document.getElementById("restartBtn");
+    const exitBtn = document.getElementById("exitBtn");
+    const bgMusic = document.getElementById("bgMusic");
+    const startMenu = document.getElementById("startMenu");
+    const startBtn = document.getElementById("startBtn");
+
+    let ball, obstacles, score, gameOver, gameInterval, obstacleSpawnInterval;
+
+    const ballRadius = 20;
+    const ballColor = '#FFD700';
+
+    const obstacleWidth = 30;
+    const obstacleSpeed = 4;
+    const minObstacleHeight = 50;
+    const maxObstacleHeight = 200;
+    const obstacleGap = 150;
+
+    function initGame() {
+      ball = {
+        x: 100,
+        y: canvas.height / 2,
+        radius: ballRadius,
+        dy: 0,
+        gravity: 0.5,
+        jumpPower: -8
+      };
+
+      obstacles = [];
+      score = 0;
+      gameOver = false;
+      scoreDisplay.textContent = score;
+
+      clearInterval(gameInterval);
+      clearInterval(obstacleSpawnInterval);
+
+      gameInterval = setInterval(updateGame, 1000 / 60);
+      obstacleSpawnInterval = setInterval(createObstaclePair, 2000);
+
+      gameOverMenu.style.display = "none";
+      startMenu.style.display = "none";
+
+      bgMusic.currentTime = 0;
+      bgMusic.play().catch(e => console.log("خطا در پخش موزیک (ممکن است نیاز به تعامل کاربر باشد):", e));
+    }
+
+    function createObstaclePair() {
+      const topHeight = Math.random() * (maxObstacleHeight - minObstacleHeight) + minObstacleHeight;
+      const bottomHeight = canvas.height - topHeight - obstacleGap;
+
+      obstacles.push({
+        x: canvas.width,
+        y: 0,
+        width: obstacleWidth,
+        height: topHeight,
+        passed: false
+      });
+      obstacles.push({
+        x: canvas.width,
+        y: canvas.height - bottomHeight,
+        width: obstacleWidth,
+        height: bottomHeight,
+        passed: false
+      });
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = ballColor;
+      ctx.fill();
+      ctx.strokeStyle = '#DAA520';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.closePath();
+    }
+
+    function drawObstacles() {
+      ctx.fillStyle = "#228B22";
+      ctx.strokeStyle = "#006400";
+      ctx.lineWidth = 2;
+      for (let obs of obstacles) {
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
+      }
+    }
+
+    function updateGame() {
+      if (gameOver) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ball.dy += ball.gravity;
+      ball.y += ball.dy;
+
+      if (ball.y - ball.radius < 0) {
+        ball.y = ball.radius;
+        ball.dy = 0;
+      }
+      if (ball.y + ball.radius > canvas.height) {
+        endGame();
+        return;
+      }
+
+      for (let i = 0; i < obstacles.length; i++) {
+        obstacles[i].x -= obstacleSpeed;
+
+        if (
+          ball.x + ball.radius > obstacles[i].x &&
+          ball.x - ball.radius < obstacles[i].x + obstacles[i].width &&
+          ball.y + ball.radius > obstacles[i].y &&
+          ball.y - ball.radius < obstacles[i].y + obstacles[i].height
+        ) {
+          endGame();
+          return;
+        }
+
+        if (obstacles[i].x + obstacles[i].width < 0) {
+          obstacles.splice(i, 1);
+          i--;
+        }
+      }
+
+      for (let j = 0; j < obstacles.length; j++) {
+          if (!obstacles[j].passed && ball.x > obstacles[j].x + obstacles[j].width) {
+              score++;
+              obstacles[j].passed = true;
+              if (score % 2 === 0) {
+                  scoreDisplay.textContent = score / 2;
+              }
+          }
+      }
+
+      drawBall();
+      drawObstacles();
+    }
+
+    function endGame() {
+      gameOver = true;
+      clearInterval(gameInterval);
+      clearInterval(obstacleSpawnInterval);
+      bgMusic.pause();
+      finalScoreDisplay.textContent = Math.floor(score / 2);
+      gameOverMenu.style.display = "block";
+    }
+
+    canvas.addEventListener("click", () => {
+      if (!gameOver && startMenu.style.display === "none") {
+        ball.dy = ball.jumpPower;
+      }
+    });
+
+    startBtn.addEventListener("click", () => {
+        initGame();
+    });
+
+    restartBtn.addEventListener("click", () => {
+      initGame();
+    });
+
+    exitBtn.addEventListener("click", () => {
+      alert("برای خروج، پنجره مرورگر را ببندید.");
+    });
+
+    window.addEventListener('load', () => {
+      startMenu.style.display = "block";
+    });
+  </script>
+</body>
+</html>
